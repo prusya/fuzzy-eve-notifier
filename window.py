@@ -1,8 +1,8 @@
 import sys
+import json
 
 import wx
 import wx.adv
-import wx.lib.scrolledpanel
 
 from watcher import Watcher
 
@@ -12,7 +12,7 @@ class MainWindow(wx.Frame):
         super(MainWindow, self).__init__(
             parent=None,
             title='Fuzzy Eve Notifier',
-            size=(850, 300),
+            size=(850, 400),
             style=wx.MINIMIZE_BOX | wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX
         )
 
@@ -88,15 +88,18 @@ class MainWindow(wx.Frame):
         panel_row0_col0 = wx.Panel(panel)
         sizer_row0_col0 = wx.BoxSizer(wx.HORIZONTAL)
 
-        start_btn = wx.Button(panel_row0_col0, label="Start", size=(90, 28))
-        stop_btn = wx.Button(panel_row0_col0, label="Stop", size=(90, 28))
-        start_btn.Bind(wx.EVT_BUTTON, self.on_start)
-        stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
-        start_btn.SetFont(font12)
-        stop_btn.SetFont(font12)
+        self.start_btn = wx.Button(panel_row0_col0, label="Start",
+                                   size=(90, 28))
+        # Watcher has been started in __init__, so just disable start button.
+        self.start_btn.Disable()
+        self.stop_btn = wx.Button(panel_row0_col0, label="Stop", size=(90, 28))
+        self.start_btn.Bind(wx.EVT_BUTTON, self.on_start)
+        self.stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
+        self.start_btn.SetFont(font12)
+        self.stop_btn.SetFont(font12)
 
-        sizer_row0_col0.Add(start_btn, 0, wx.ALL, 3)
-        sizer_row0_col0.Add(stop_btn, 0, wx.ALL, 3)
+        sizer_row0_col0.Add(self.start_btn, 0, wx.ALL, 3)
+        sizer_row0_col0.Add(self.stop_btn, 0, wx.ALL, 3)
         panel_row0_col0.SetSizer(sizer_row0_col0)
 
         # Second column.
@@ -130,18 +133,19 @@ class MainWindow(wx.Frame):
         panel_row0_col3 = wx.Panel(panel)
         sizer_row0_col3 = wx.BoxSizer(wx.HORIZONTAL)
 
-        # play_sound_chk = wx.CheckBox(panel_row0_col3, label='Sound',
-        #                              size=(65, 28))
+        self.play_sound_chk = wx.CheckBox(panel_row0_col3, label='Sound',
+                                     size=(65, 28))
         # delay_spin = wx.SpinCtrl(panel_row0_col3, value="5", size=(20, 28))
         # delay_label = wx.StaticText(panel_row0_col3, label='Time',
         #                             size=(20, 28))
-        # play_sound_chk.Bind(wx.EVT_CHECKBOX, self.on_sound_chk)
+        self.play_sound_chk.Bind(wx.EVT_CHECKBOX, self.on_sound_chk)
+        self.play_sound_chk.SetValue(True)
         # delay_spin.Bind(wx.EVT_SPINCTRL, self.on_spin)
-        # play_sound_chk.SetFont(font12)
+        self.play_sound_chk.SetFont(font12)
         # delay_spin.SetFont(font12)
         # delay_label.SetFont(font12)
-        #
-        # sizer_row0_col3.Add(play_sound_chk, 1, wx.ALL, 3)
+
+        sizer_row0_col3.Add(self.play_sound_chk, 1, wx.ALL, 3)
         # sizer_row0_col3.Add(delay_spin, 1, wx.ALL, 3)
         # sizer_row0_col3.Add(delay_label, 1, wx.ALL|wx.ALIGN_CENTER_VERTICAL, 3)
         panel_row0_col3.SetSizer(sizer_row0_col3)
@@ -193,20 +197,37 @@ class MainWindow(wx.Frame):
         self.Raise()
 
     def on_about(self, e):
-        print('on_about')
-        print(e)
+        pass
 
     def on_load(self, e):
-        print('on_load')
-        print(e)
+        openFileDialog = wx.FileDialog(
+            self, "Open Feven file", ".\\presets", "", "Feven files|*.fen",
+            wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        )
+        if openFileDialog.ShowModal() == wx.ID_CANCEL:
+            return
+        with open(openFileDialog.GetPath(), 'r') as file:
+            data = json.load(file)
+            self.directory_text.SetValue(data.get('directories', ''))
+            self.filename_text.SetValue(data.get('files', ''))
+            self.message_text.SetValue(data.get('keywords', ''))
+            self.ignore_text.SetValue(data.get('ignore', ''))
+            self.on_apply(None)
 
     def on_save(self, e):
-        print('on_save')
-        print(e)
-
-    def on_edit_preset(self, e):
-        print('on_edit_preset')
-        print(e)
+        saveFileDialog = wx.FileDialog(
+            self, "Save XYZ file", ".\\presets", "", "Feven files|*.fen",
+            wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
+        if saveFileDialog.ShowModal() == wx.ID_CANCEL:
+            return
+        with open(saveFileDialog.GetPath(), 'w+') as file:
+            data = {
+                'directories': self.directory_text.GetValue(),
+                'files': self.filename_text.GetValue(),
+                'keywords': self.message_text.GetValue(),
+                'ignore': self.ignore_text.GetValue()
+            }
+            json.dump(data, file)
 
     def on_apply(self, e):
         paths = self.directory_text.GetValue().strip().split('\n')
@@ -220,18 +241,17 @@ class MainWindow(wx.Frame):
         self.watcher.update(paths, filenames, keywords, ignore)
 
     def on_start(self, e):
-        print('on_start')
-
-        print(e)
+        self.watcher.run_monitor()
+        self.start_btn.Disable()
+        self.stop_btn.Enable()
 
     def on_stop(self, e):
-        print('on_stop')
-        print(e)
+        self.watcher.stop_monitor()
+        self.stop_btn.Disable()
+        self.start_btn.Enable()
 
     def on_sound_chk(self, e):
-        print('on_sound_chk')
-        print(e)
+        self.watcher.set_play_sound(self.play_sound_chk.IsChecked())
 
     def on_spin(self, e):
-        print('on_spin')
-        print(e)
+        pass

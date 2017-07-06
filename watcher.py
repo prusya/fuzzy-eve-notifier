@@ -41,6 +41,8 @@ class Watcher:
         # This flag, when set, prevents files from being scanned while
         # directories are scanned and lists are renewed.
         self._scan_in_progress = False
+        self.sound = wx.adv.Sound('sound.wav')
+        self._play_sound = True
 
     def _scan_directories(self):
         self._scan_in_progress = True
@@ -90,6 +92,11 @@ class Watcher:
             # popup = wx.adv.NotificationMessage('Feven Intel', message)
             # popup.Show(timeout=5)
             self._frame.tb_icon.ShowBalloon('Feven Interl', message, 5000)
+            if self._play_sound:
+                self.sound.Play(wx.adv.SOUND_ASYNC)
+
+    def set_play_sound(self, state):
+        self._play_sound = bool(state)
 
     def update(self, directories, files, keywords, ignore):
         self.stop_monitor()
