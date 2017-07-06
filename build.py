@@ -11,7 +11,7 @@ excludes = ['unittest', 'email', 'html', 'http', 'urllib', 'xml',
 zip_include_packages = ['collections', 'encodings', 'importlib', 'wx',
                         'logging', 'ctypes', 'pathtools']
 
-include_files = ['feven.ico', 'presets']
+include_files = ['feven.ico', 'presets', 'sound.wav']
 
 options = {
     'build_exe': {
