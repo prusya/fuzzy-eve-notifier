@@ -1,4 +1,5 @@
 import wx
+
 from window import MainWindow
 
 

@@ -1,5 +1,10 @@
+import sys
+
 import wx
-import wx.html2
+import wx.adv
+import wx.lib.scrolledpanel
+
+from watcher import Watcher
 
 
 class MainWindow(wx.Frame):
@@ -14,6 +19,9 @@ class MainWindow(wx.Frame):
         self.init_ui()
         self.Centre()
         self.Show(True)
+        self.Bind(wx.EVT_CLOSE, self.on_exit)
+        self.watcher = Watcher()
+        self.watcher.run_monitor()
 
     def init_ui(self):
         menubar = wx.MenuBar()
@@ -47,6 +55,7 @@ class MainWindow(wx.Frame):
 
         panel = wx.Panel(self)
         hbox = wx.BoxSizer(wx.HORIZONTAL)
+        # Row based layout.
         # 3 rows with 4 columns, 5xp border horizontally and vertially.
         # caption caption caption caption
         # button  button  button  button
@@ -55,6 +64,7 @@ class MainWindow(wx.Frame):
 
         font12 = wx.Font(12, wx.DEFAULT, wx.NORMAL, wx.NORMAL)
 
+        # First row.
         # Create text captions for columns and assign font.
         directory_caption = wx.StaticText(panel, label="Directory")
         filename_caption = wx.StaticText(panel, label="Filename")
@@ -65,6 +75,7 @@ class MainWindow(wx.Frame):
         message_caption.SetFont(font12)
         ignore_caption.SetFont(font12)
 
+        # Second row.
         # Create apply buttons for columns and assign event handler and font.
         directory_apply = wx.Button(panel, label="Apply", size=(90, 28))
         filename_apply = wx.Button(panel, label="Apply", size=(90, 28))
@@ -79,25 +90,26 @@ class MainWindow(wx.Frame):
         message_apply.SetFont(font12)
         ignore_apply.SetFont(font12)
 
+        # Third row.
         # Create text inputs and assign font.
-        directory_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        filename_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        message_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        ignore_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
-        directory_text.SetFont(font12)
-        filename_text.SetFont(font12)
-        message_text.SetFont(font12)
-        ignore_text.SetFont(font12)
+        self.directory_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
+        self.filename_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
+        self.message_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
+        self.ignore_text = wx.TextCtrl(panel, style=wx.TE_MULTILINE)
+        self.directory_text.SetFont(font12)
+        self.filename_text.SetFont(font12)
+        self.message_text.SetFont(font12)
+        self.ignore_text.SetFont(font12)
 
         # Add captions, buttons, text inputs into grid.
         fgs.AddMany([
             directory_caption, filename_caption, message_caption,
             ignore_caption,
             directory_apply, filename_apply, message_apply, ignore_apply,
-            (directory_text, 1, wx.EXPAND),
-            (filename_text, 1, wx.EXPAND),
-            (message_text, 1, wx.EXPAND),
-            (ignore_text, 1, wx.EXPAND),
+            (self.directory_text, 1, wx.EXPAND),
+            (self.filename_text, 1, wx.EXPAND),
+            (self.message_text, 1, wx.EXPAND),
+            (self.ignore_text, 1, wx.EXPAND)
         ])
 
         # Last row and all columns are growable to fill empty space.
@@ -108,6 +120,12 @@ class MainWindow(wx.Frame):
         fgs.AddGrowableCol(3, 1)
         hbox.Add(fgs, proportion=1, flag=wx.ALL | wx.EXPAND, border=5)
         panel.SetSizer(hbox)
+
+    def on_exit(self, e):
+        self.watcher.stop_monitor()
+        # For unknown reasons MainThread does not stop and process does not
+        # finish. Use explicit exit.
+        sys.exit(0)
 
     def on_quit(self, e):
         self.Close()
@@ -129,11 +147,19 @@ class MainWindow(wx.Frame):
         print(e)
 
     def on_directory_apply(self, e):
-        print('on_directory_apply')
-        print(e)
+        paths = self.directory_text.GetValue().strip().split('\n')
+        if not paths:
+            return
+        filenames = self.filename_text.GetValue().strip().split('\n')
+        if not filenames:
+            return
+        keywords = self.message_text.GetValue().strip().split('\n')
+        ignore = self.ignore_text.GetValue().strip().split('\n')
+        self.watcher.update(paths, filenames, keywords, ignore)
 
     def on_filename_apply(self, e):
         print('on_filename_apply')
+
         print(e)
 
     def on_message_apply(self, e):
