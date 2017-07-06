@@ -24,6 +24,13 @@ class MainWindow(wx.Frame):
         self.watcher.run_monitor()
 
     def init_ui(self):
+        icon = wx.Icon()
+        icon.CopyFromBitmap(wx.Bitmap("feven.ico", wx.BITMAP_TYPE_ANY))
+        self.SetIcon(icon)
+        self.tb_icon = wx.adv.TaskBarIcon()
+        self.tb_icon.SetIcon(wx.Icon(wx.Bitmap("feven.ico")), 'Fuzzy Eve '
+                                                              'Notifier')
+
         menubar = wx.MenuBar()
 
         file_menu = wx.Menu()
@@ -122,6 +129,7 @@ class MainWindow(wx.Frame):
         panel.SetSizer(hbox)
 
     def on_exit(self, e):
+        self.tb_icon.RemoveIcon()
         self.watcher.stop_monitor()
         # For unknown reasons MainThread does not stop and process does not
         # finish. Use explicit exit.
