@@ -23,10 +23,10 @@ install:
   # Upgrade to the latest version of pip to avoid it displaying warnings
   # about it being out of date.
   - "pip install --disable-pip-version-check --user --upgrade pip"
-  - "%CMD_IN_ENV% pip install -r requirements.txt"
+  - "pip install -r requirements.txt"
 
 build_script:
-  - "%CMD_IN_ENV% python build.py build"
+  - "python build.py build"
 
 test: off
 
