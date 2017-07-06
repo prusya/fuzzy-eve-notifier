@@ -12,7 +12,7 @@ Features:
  * Play sound
  * Save and load monitor presets
 
-<img src="image.png.png"/>
+<img src="image.png"/>
 
 #### Build Setup
 
