@@ -20,10 +20,20 @@ class MainWindow(wx.Frame):
         self.Centre()
         self.Show(True)
         self.Bind(wx.EVT_CLOSE, self.on_exit)
-        self.watcher = Watcher(self)
+        self.watcher = Watcher(self.show_popup)
         self.watcher.run_monitor()
 
+    def show_popup(self, message):
+        # ShowBalloon is for windows only. If support for other platforms
+        # needed, uncomment popup lines and comment out ShowBalloon line.
+        # popup = wx.adv.NotificationMessage('Feven Intel', message)
+        # popup.Show(timeout=5)
+        self.tb_icon.ShowBalloon('Feven Interl', message, 5000)
+        if self.play_sound_chk.IsChecked():
+            self.sound.Play(wx.adv.SOUND_ASYNC)
+
     def init_ui(self):
+        self.sound = wx.adv.Sound('sound.wav')
         icon = wx.Icon()
         icon.CopyFromBitmap(wx.Bitmap("feven.ico", wx.BITMAP_TYPE_ANY))
         self.SetIcon(icon)
@@ -65,8 +75,8 @@ class MainWindow(wx.Frame):
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         # Row based layout.
         # 3 rows with 4 columns, 5xp border horizontally and vertially.
+        # buttons buttons button  checkbox
         # caption caption caption caption
-        # button  button  button  button
         # input   input   input   input
         fgs = wx.FlexGridSizer(3, 4, 5, 5)
 
@@ -102,7 +112,7 @@ class MainWindow(wx.Frame):
         sizer_row0_col0.Add(self.stop_btn, 0, wx.ALL, 3)
         panel_row0_col0.SetSizer(sizer_row0_col0)
 
-        # Second column.
+        # Third column.
         panel_row0_col1 = wx.Panel(panel)
         sizer_row0_col1 = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -114,7 +124,7 @@ class MainWindow(wx.Frame):
         sizer_row0_col1.Add(apply_btn, 1, wx.ALL, 3)
         panel_row0_col1.SetSizer(sizer_row0_col1)
 
-        # Third column.
+        # Second column.
         panel_row0_col2 = wx.Panel(panel)
         sizer_row0_col2 = wx.BoxSizer(wx.HORIZONTAL)
 
@@ -251,7 +261,7 @@ class MainWindow(wx.Frame):
         self.start_btn.Enable()
 
     def on_sound_chk(self, e):
-        self.watcher.set_play_sound(self.play_sound_chk.IsChecked())
+        pass
 
     def on_spin(self, e):
         pass

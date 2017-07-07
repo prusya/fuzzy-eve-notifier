@@ -1,8 +1,7 @@
 import os
 import codecs
+import chardet
 import threading
-
-import wx.adv
 
 
 class StoppableThread(threading.Thread):
@@ -28,9 +27,9 @@ class StoppableThread(threading.Thread):
 
 class Watcher:
     # Empty string in keywords means to grab any changes in files.
-    def __init__(self, frame, directories=[], files=[], keywords=[''],
+    def __init__(self, callback, directories=[], files=[], keywords=[''],
                  ignore=[]):
-        self._frame = frame
+        self.callback = callback
         self.directories = list(directories)
         self.files = list(files)
         self.keywords = list(keywords)
@@ -41,13 +40,12 @@ class Watcher:
         # This flag, when set, prevents files from being scanned while
         # directories are scanned and lists are renewed.
         self._scan_in_progress = False
-        self.sound = wx.adv.Sound('sound.wav')
-        self._play_sound = True
 
     def _scan_directories(self):
         self._scan_in_progress = True
         self._scan_results = dict()
         if not self.directories or not self.files:
+            self._scan_in_progress = False
             return
         for directory in self.directories:
             with os.scandir(directory) as it:
@@ -72,7 +70,15 @@ class Watcher:
             try:
                 current_size = os.stat(path).st_size
                 if current_size > size:
-                    with codecs.open(path, 'r', 'utf-16') as file:
+                    file = open(path, 'rb')
+                    bytes = min(32, current_size)
+                    raw = file.read(bytes)
+                    file.close()
+                    res = chardet.detect(raw)
+                    if res['encoding'].lower() not in \
+                            ['ascii', 'utf-8', 'utf-16']:
+                        continue
+                    with codecs.open(path, 'r', res['encoding']) as file:
                         file.seek(size)
                         lines = file.readlines()
                         match = filter(
@@ -87,16 +93,7 @@ class Watcher:
                 del self._scan_results[path]
         if messages:
             message = '\n'.join(messages)
-            # ShowBalloon is for windows only. If support for other platforms
-            # needed, uncomment popup lines and comment out ShowBalloon line.
-            # popup = wx.adv.NotificationMessage('Feven Intel', message)
-            # popup.Show(timeout=5)
-            self._frame.tb_icon.ShowBalloon('Feven Interl', message, 5000)
-            if self._play_sound:
-                self.sound.Play(wx.adv.SOUND_ASYNC)
-
-    def set_play_sound(self, state):
-        self._play_sound = bool(state)
+            self.callback(message)
 
     def update(self, directories, files, keywords, ignore):
         self.stop_monitor()
@@ -109,6 +106,8 @@ class Watcher:
 
     def run_monitor(self):
         self.stop_monitor()
+        if self.directories and self.files:
+            self._scan_directories()
         # Let's check files for changes every two seconds(timeout=2).
         self._monitor_thread = StoppableThread(
             target=self._scan_files, timeout=2)
